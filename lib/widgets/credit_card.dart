@@ -14,7 +14,7 @@ class CreditCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final isSteam = credit.platform == 'Steam';
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -24,27 +24,74 @@ class CreditCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Image.network(
-                credit.image,
-                width: double.infinity,
-                fit: BoxFit.cover,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Hero(
+                      tag: credit.id,
+                      child: Container(
+                        color: Colors.black12,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Image.asset(
+                            credit.image,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSteam
+                            ? const Color(0xFF00ADFF)
+                            : const Color(0xFFFF4654),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        credit.platform,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
+
             Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
               child: Text(
                 credit.title,
-                style: theme.textTheme.titleSmall,
                 maxLines: 2,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 17,
+                ),
               ),
             ),
+
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
               child: Text(
                 '₱${credit.price.toStringAsFixed(0)}',
                 style: TextStyle(
-                  color: theme.colorScheme.primary,
+                  color: isSteam
+                      ? const Color(0xFF00ADFF)
+                      : const Color(0xFFFF4654),
                   fontWeight: FontWeight.bold,
+                  fontSize: 18,
                 ),
               ),
             ),

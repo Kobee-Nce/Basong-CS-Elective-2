@@ -4,6 +4,7 @@ class GameCredit {
   final double price;
   final String image;
   final String description;
+  final String platform;
 
   const GameCredit({
     required this.id,
@@ -11,5 +12,6 @@ class GameCredit {
     required this.price,
     required this.image,
     required this.description,
+    required this.platform,
   });
 }
