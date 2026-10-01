@@ -1,45 +1,25 @@
-
 import 'package:flutter/material.dart';
-
-import 'router.dart';
-import 'theme/app_theme.dart';
+import 'screen/pokescreen.dart';
 
 void main() {
-  runApp(const GameCreditsShop());
+  runApp(const PokedexApp());
 }
 
-class GameCreditsShop extends StatefulWidget {
-  const GameCreditsShop({super.key});
-
-  static _GameCreditsShopState of(BuildContext context) =>
-      context.findAncestorStateOfType<_GameCreditsShopState>()!;
-
-  @override
-  State<GameCreditsShop> createState() => _GameCreditsShopState();
-}
-
-class _GameCreditsShopState extends State<GameCreditsShop> {
-  ThemeMode themeMode = ThemeMode.light;
-
-  void toggleTheme() {
-    setState(() {
-      themeMode = themeMode == ThemeMode.light
-          ? ThemeMode.dark
-          : ThemeMode.light;
-    });
-  }
+class PokedexApp extends StatelessWidget {
+  const PokedexApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Game Credits Shop',
-
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode,
-
-      routerConfig: router,
+      title: 'Pokédex',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.red,
+        ),
+        useMaterial3: true,
+      ),
+      home: const PokedexScreen(),
     );
   }
 }
