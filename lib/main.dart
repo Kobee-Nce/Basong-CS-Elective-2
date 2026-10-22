@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'pages/pokedex_page.dart';
-import 'providers/pokemon_provider.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => PokemonProvider()..fetchPokemon(),
-      child: const PokedexApp(),
+    const ProviderScope(
+      child: PokedexApp(),
     ),
   );
 }
@@ -22,10 +20,12 @@ class PokedexApp extends StatelessWidget {
       title: 'Pokédex',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.red,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(centerTitle: true),
+        inputDecorationTheme: const InputDecorationTheme(
+          border: OutlineInputBorder(),
+        ),
       ),
       home: const PokedexPage(),
     );
