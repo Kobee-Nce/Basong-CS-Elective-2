@@ -1,0 +1,745 @@
+From 2b1e02872b4bf7664f4f2086d5e53ba174f8f6dd Mon Sep 17 00:00:00 2001
+From: Kobe Nice Basong <kobenmbasong@gmail.com>
+Date: Tue, 17 Nov 2026 21:53:32 +0800
+Subject: [PATCH] Add Supabase Auth with email and GitHub sign-in
+
+- AuthController listens to onAuthStateChange
+- Login screen with email/password sign in and sign up
+- GitHub OAuth as the additional third-party provider
+- Router redirects signed-out users to /login
+- Account menu with sign out on the home screen
+- Register io.supabase.gamecreditsshop redirect scheme on macOS, iOS, Android
+- Optional SQL to restrict product reads to signed-in users
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01L6gdef9r2m3mL3bDjtcZxu
+---
+ README.md                                |  37 ++-
+ android/app/src/main/AndroidManifest.xml |  11 +
+ ios/Runner/Info.plist                    |  11 +
+ lib/main.dart                            |   4 +
+ lib/router.dart                          |  24 ++
+ lib/screens/home_screen.dart             |  34 +++
+ lib/screens/login_screen.dart            | 288 +++++++++++++++++++++++
+ lib/state/auth_controller.dart           | 138 +++++++++++
+ macos/Runner/Info.plist                  |  11 +
+ macos/Runner/Release.entitlements        |   2 +
+ supabase/auth.sql                        |  17 ++
+ 11 files changed, 575 insertions(+), 2 deletions(-)
+ create mode 100644 lib/screens/login_screen.dart
+ create mode 100644 lib/state/auth_controller.dart
+ create mode 100644 supabase/auth.sql
+
+diff --git a/README.md b/README.md
+index 185c2b0..063ee79 100644
+--- a/README.md
++++ b/README.md
+@@ -1,6 +1,7 @@
+-# Game Credits Shop — Supabase Price Filter + Pagination
++# Game Credits Shop — Supabase Auth, Price Filter + Pagination
+ 
+-CS Elective 2 · Supabase-Flutter Activity (branch `backend-filter-pagination`).
++CS Elective 2 · Supabase-Auth Activity (branch `backend-auth`), built on the
++Supabase-Flutter Activity (branch `backend-filter-pagination`).
+ 
+ Builds on the PrelimExam Game Credits Shop. The product catalog now lives in a
+ Supabase `products` table instead of a hardcoded list, and the home screen adds:
+@@ -30,6 +31,38 @@ final response = await supabase
+ Changing the price range always jumps back to page 1, so you never land on a
+ page that no longer exists.
+ 
++## Authentication (`backend-auth`)
++
++The shop now requires signing in. Two ways to sign in:
++
++- **Email + password** — sign up / sign in with Supabase Auth.
++- **GitHub** (the additional 3rd-party provider) — opens GitHub in the
++  browser, then returns to the app through the deep link
++  `io.supabase.gamecreditsshop://login-callback/`.
++
++`AuthController` (`lib/state/auth_controller.dart`) listens to
++`supabase.auth.onAuthStateChange`. The router uses it as its
++`refreshListenable`, so signed-out users only see `/login` and signed-in
++users go straight to the shop. Sign out from the account menu on the home
++screen.
++
++### GitHub provider setup
++
++1. **GitHub → Settings → Developer settings → OAuth Apps → New OAuth App**
++   - Homepage URL: `https://<your-project-ref>.supabase.co`
++   - Authorization callback URL: `https://<your-project-ref>.supabase.co/auth/v1/callback`
++   - Register, then copy the **Client ID** and generate a **Client secret**.
++2. **Supabase → Authentication → Sign In / Providers → GitHub**: enable it,
++   paste the Client ID and Client secret, and save.
++3. **Supabase → Authentication → URL Configuration → Redirect URLs**: add
++   `io.supabase.gamecreditsshop://login-callback/`
++4. Fully stop and re-run the app (the URL scheme is registered in
++   `macos/Runner/Info.plist`, `ios/Runner/Info.plist` and
++   `android/app/src/main/AndroidManifest.xml`, which need a rebuild).
++
++Optional: run [`supabase/auth.sql`](supabase/auth.sql) so the database only
++lets signed-in users read products.
++
+ ## Setup
+ 
+ 1. **Create the table.** In your Supabase project open **SQL Editor**, paste
+diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+index f2daf87..c63221e 100644
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/android/app/src/main/AndroidManifest.xml
+@@ -1,4 +1,6 @@
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android">
++    <!-- Needed to reach Supabase in release builds -->
++    <uses-permission android:name="android.permission.INTERNET"/>
+     <application
+         android:label="flutter_application_1"
+         android:name="${applicationName}"
+@@ -24,6 +26,15 @@
+                 <action android:name="android.intent.action.MAIN"/>
+                 <category android:name="android.intent.category.LAUNCHER"/>
+             </intent-filter>
++            <!-- Supabase OAuth (GitHub) redirects back here after sign-in -->
++            <intent-filter>
++                <action android:name="android.intent.action.VIEW" />
++                <category android:name="android.intent.category.DEFAULT" />
++                <category android:name="android.intent.category.BROWSABLE" />
++                <data
++                    android:scheme="io.supabase.gamecreditsshop"
++                    android:host="login-callback" />
++            </intent-filter>
+         </activity>
+         <!-- Don't delete the meta-data below.
+              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+diff --git a/ios/Runner/Info.plist b/ios/Runner/Info.plist
+index 5323135..a74bfde 100644
+--- a/ios/Runner/Info.plist
++++ b/ios/Runner/Info.plist
+@@ -66,5 +66,16 @@
+ 		<string>UIInterfaceOrientationLandscapeLeft</string>
+ 		<string>UIInterfaceOrientationLandscapeRight</string>
+ 	</array>
++	<key>CFBundleURLTypes</key>
++	<array>
++		<dict>
++			<key>CFBundleURLName</key>
++			<string>io.supabase.gamecreditsshop</string>
++			<key>CFBundleURLSchemes</key>
++			<array>
++				<string>io.supabase.gamecreditsshop</string>
++			</array>
++		</dict>
++	</array>
+ </dict>
+ </plist>
+diff --git a/lib/main.dart b/lib/main.dart
+index 8164783..617c178 100644
+--- a/lib/main.dart
++++ b/lib/main.dart
+@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
+ 
+ import 'config/supabase_config.dart';
+ import 'router.dart';
++import 'state/auth_controller.dart';
+ import 'theme/app_theme.dart';
+ 
+ Future<void> main() async {
+@@ -15,6 +16,9 @@ Future<void> main() async {
+       url: SupabaseConfig.url,
+       anonKey: SupabaseConfig.anonKey,
+     );
++
++    // Start listening for sign-in / sign-out (incl. the GitHub redirect).
++    AuthController.instance.init();
+   }
+ 
+   runApp(const GameCreditsShop());
+diff --git a/lib/router.dart b/lib/router.dart
+index 9ff6f40..a55f947 100644
+--- a/lib/router.dart
++++ b/lib/router.dart
+@@ -5,12 +5,36 @@ import 'models/game_credit.dart';
+ import 'screens/cart_screen.dart';
+ import 'screens/checkout_confirmation_screen.dart';
+ import 'screens/home_screen.dart';
++import 'screens/login_screen.dart';
+ import 'screens/product_detail_screen.dart';
++import 'state/auth_controller.dart';
+ import 'state/products_controller.dart';
+ import 'theme/app_theme.dart';
+ 
+ final GoRouter router = GoRouter(
++  // Re-run `redirect` whenever the user signs in or out.
++  refreshListenable: AuthController.instance,
++
++  // Signed out → only the login screen. Signed in → never the login screen.
++  redirect: (context, state) {
++    final signedIn = AuthController.instance.isSignedIn;
++    final atLogin = state.matchedLocation == '/login';
++
++    if (!signedIn && !atLogin) return '/login';
++    if (signedIn && atLogin) return '/';
++    return null;
++  },
++
++  // The GitHub redirect link (io.supabase.gamecreditsshop://login-callback)
++  // can reach the router too. Supabase handles it, so just go home.
++  onException: (context, state, router) => router.go('/'),
++
+   routes: [
++    GoRoute(
++      path: '/login',
++      builder: (context, state) => const LoginScreen(),
++    ),
++
+     GoRoute(
+       path: '/',
+       builder: (context, state) => const HomeScreen(),
+diff --git a/lib/screens/home_screen.dart b/lib/screens/home_screen.dart
+index 97c9b55..b092666 100644
+--- a/lib/screens/home_screen.dart
++++ b/lib/screens/home_screen.dart
+@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
+ import 'package:go_router/go_router.dart';
+ 
+ import '../main.dart';
++import '../state/auth_controller.dart';
++import '../state/cart_controller.dart';
+ import '../state/products_controller.dart';
+ import '../theme/app_theme.dart';
+ import '../widgets/credit_card.dart';
+@@ -58,6 +60,38 @@ class _HomeScreenState extends State<HomeScreen> {
+             },
+             icon: const Icon(Icons.shopping_cart),
+           ),
++
++          // Signed-in account + sign out.
++          PopupMenuButton<String>(
++            tooltip: 'Account',
++            icon: const Icon(Icons.account_circle),
++            onSelected: (value) async {
++              if (value == 'signout') {
++                CartController.instance.clear();
++                // The router sends the user to /login once signed out.
++                await AuthController.instance.signOut();
++              }
++            },
++            itemBuilder: (context) => [
++              PopupMenuItem<String>(
++                enabled: false,
++                child: Text(
++                  AuthController.instance.user?.email ?? 'Signed in',
++                ),
++              ),
++              const PopupMenuDivider(),
++              const PopupMenuItem<String>(
++                value: 'signout',
++                child: Row(
++                  children: [
++                    Icon(Icons.logout),
++                    SizedBox(width: 10),
++                    Text('Sign out'),
++                  ],
++                ),
++              ),
++            ],
++          ),
+         ],
+       ),
+ 
+diff --git a/lib/screens/login_screen.dart b/lib/screens/login_screen.dart
+new file mode 100644
+index 0000000..e2f6311
+--- /dev/null
++++ b/lib/screens/login_screen.dart
+@@ -0,0 +1,288 @@
++import 'package:flutter/material.dart';
++
++import '../state/auth_controller.dart';
++import '../theme/app_theme.dart';
++
++/// Email + password sign in / sign up, plus "Continue with GitHub".
++/// The router leaves this screen on its own once a session exists.
++class LoginScreen extends StatefulWidget {
++  const LoginScreen({super.key});
++
++  @override
++  State<LoginScreen> createState() => _LoginScreenState();
++}
++
++class _LoginScreenState extends State<LoginScreen> {
++  final auth = AuthController.instance;
++
++  final _formKey = GlobalKey<FormState>();
++  final _email = TextEditingController();
++  final _password = TextEditingController();
++
++  bool _isSignUp = false;
++  bool _hidePassword = true;
++
++  @override
++  void dispose() {
++    _email.dispose();
++    _password.dispose();
++    super.dispose();
++  }
++
++  Future<void> _submitEmail() async {
++    if (!_formKey.currentState!.validate()) return;
++
++    final email = _email.text.trim();
++    final password = _password.text;
++
++    if (_isSignUp) {
++      await auth.signUpWithEmail(email, password);
++      // Account needs confirming → switch back to the sign-in form.
++      if (auth.info != null && mounted) {
++        setState(() => _isSignUp = false);
++      }
++    } else {
++      await auth.signInWithEmail(email, password);
++    }
++  }
++
++  void _toggleMode() {
++    auth.clearMessages();
++    setState(() => _isSignUp = !_isSignUp);
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final isDark = Theme.of(context).brightness == Brightness.dark;
++
++    return Scaffold(
++      body: Container(
++        decoration: BoxDecoration(
++          gradient: isDark ? AppTheme.darkGradient : AppTheme.lightGradient,
++        ),
++        child: SafeArea(
++          child: Center(
++            child: SingleChildScrollView(
++              padding: const EdgeInsets.all(24),
++              child: ConstrainedBox(
++                constraints: const BoxConstraints(maxWidth: 420),
++                child: ListenableBuilder(
++                  listenable: auth,
++                  builder: (context, _) => _buildCard(),
++                ),
++              ),
++            ),
++          ),
++        ),
++      ),
++    );
++  }
++
++  Widget _buildCard() {
++    final busy = auth.isLoading;
++
++    return Column(
++      mainAxisSize: MainAxisSize.min,
++      children: [
++        const Icon(Icons.sports_esports_rounded, color: Colors.white, size: 64),
++
++        const SizedBox(height: 8),
++
++        const Text(
++          'Game Credits Shop',
++          textAlign: TextAlign.center,
++          style: TextStyle(
++            color: Colors.white,
++            fontSize: 32,
++            fontWeight: FontWeight.bold,
++          ),
++        ),
++
++        Text(
++          _isSignUp ? 'Create your account' : 'Sign in to continue',
++          style: const TextStyle(color: Colors.white70, fontSize: 18),
++        ),
++
++        const SizedBox(height: 24),
++
++        Card(
++          child: Padding(
++            padding: const EdgeInsets.all(20),
++            child: Form(
++              key: _formKey,
++              child: Column(
++                crossAxisAlignment: CrossAxisAlignment.stretch,
++                children: [
++                  TextFormField(
++                    controller: _email,
++                    enabled: !busy,
++                    keyboardType: TextInputType.emailAddress,
++                    autofillHints: const [AutofillHints.email],
++                    decoration: const InputDecoration(
++                      labelText: 'Email',
++                      prefixIcon: Icon(Icons.email_outlined),
++                      border: OutlineInputBorder(),
++                    ),
++                    validator: (value) {
++                      final v = value?.trim() ?? '';
++                      if (v.isEmpty) return 'Enter your email';
++                      if (!v.contains('@') || !v.contains('.')) {
++                        return 'Enter a valid email';
++                      }
++                      return null;
++                    },
++                  ),
++
++                  const SizedBox(height: 14),
++
++                  TextFormField(
++                    controller: _password,
++                    enabled: !busy,
++                    obscureText: _hidePassword,
++                    autofillHints: const [AutofillHints.password],
++                    onFieldSubmitted: (_) => _submitEmail(),
++                    decoration: InputDecoration(
++                      labelText: 'Password',
++                      prefixIcon: const Icon(Icons.lock_outline),
++                      border: const OutlineInputBorder(),
++                      suffixIcon: IconButton(
++                        onPressed: () =>
++                            setState(() => _hidePassword = !_hidePassword),
++                        icon: Icon(
++                          _hidePassword
++                              ? Icons.visibility_outlined
++                              : Icons.visibility_off_outlined,
++                        ),
++                      ),
++                    ),
++                    validator: (value) {
++                      if ((value ?? '').isEmpty) return 'Enter your password';
++                      // Supabase's default minimum password length.
++                      if (_isSignUp && value!.length < 6) {
++                        return 'Use at least 6 characters';
++                      }
++                      return null;
++                    },
++                  ),
++
++                  if (auth.error != null) ...[
++                    const SizedBox(height: 14),
++                    _Notice(
++                      text: auth.error!,
++                      color: AppTheme.valorantRed,
++                      icon: Icons.error_outline,
++                    ),
++                  ],
++
++                  if (auth.info != null) ...[
++                    const SizedBox(height: 14),
++                    _Notice(
++                      text: auth.info!,
++                      color: Colors.green.shade700,
++                      icon: Icons.mark_email_read_outlined,
++                    ),
++                  ],
++
++                  const SizedBox(height: 18),
++
++                  ElevatedButton(
++                    onPressed: busy ? null : _submitEmail,
++                    child: busy
++                        ? const SizedBox(
++                            width: 22,
++                            height: 22,
++                            child: CircularProgressIndicator(
++                              strokeWidth: 2.5,
++                              color: Colors.white,
++                            ),
++                          )
++                        : Text(
++                            _isSignUp ? 'Create account' : 'Sign in',
++                            style: const TextStyle(fontSize: 18),
++                          ),
++                  ),
++
++                  TextButton(
++                    onPressed: busy ? null : _toggleMode,
++                    child: Text(
++                      _isSignUp
++                          ? 'Already have an account? Sign in'
++                          : "Don't have an account? Sign up",
++                    ),
++                  ),
++
++                  const Padding(
++                    padding: EdgeInsets.symmetric(vertical: 8),
++                    child: Row(
++                      children: [
++                        Expanded(child: Divider()),
++                        Padding(
++                          padding: EdgeInsets.symmetric(horizontal: 12),
++                          child: Text('or'),
++                        ),
++                        Expanded(child: Divider()),
++                      ],
++                    ),
++                  ),
++
++                  // Third-party provider (activity requirement).
++                  OutlinedButton.icon(
++                    onPressed: busy ? null : auth.signInWithGitHub,
++                    style: OutlinedButton.styleFrom(
++                      padding: const EdgeInsets.symmetric(vertical: 14),
++                      backgroundColor: const Color(0xFF24292F),
++                      foregroundColor: Colors.white,
++                      side: BorderSide.none,
++                      shape: RoundedRectangleBorder(
++                        borderRadius: BorderRadius.circular(14),
++                      ),
++                    ),
++                    icon: const Icon(Icons.code_rounded),
++                    label: const Text(
++                      'Continue with GitHub',
++                      style: TextStyle(fontSize: 18),
++                    ),
++                  ),
++                ],
++              ),
++            ),
++          ),
++        ),
++      ],
++    );
++  }
++}
++
++class _Notice extends StatelessWidget {
++  final String text;
++  final Color color;
++  final IconData icon;
++
++  const _Notice({
++    required this.text,
++    required this.color,
++    required this.icon,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    return Container(
++      padding: const EdgeInsets.all(12),
++      decoration: BoxDecoration(
++        color: color.withOpacity(.12),
++        borderRadius: BorderRadius.circular(12),
++        border: Border.all(color: color.withOpacity(.5)),
++      ),
++      child: Row(
++        crossAxisAlignment: CrossAxisAlignment.start,
++        children: [
++          Icon(icon, color: color, size: 20),
++          const SizedBox(width: 8),
++          Expanded(
++            child: Text(text, style: TextStyle(color: color)),
++          ),
++        ],
++      ),
++    );
++  }
++}
+diff --git a/lib/state/auth_controller.dart b/lib/state/auth_controller.dart
+new file mode 100644
+index 0000000..4b342df
+--- /dev/null
++++ b/lib/state/auth_controller.dart
+@@ -0,0 +1,138 @@
++import 'dart:async';
++
++import 'package:flutter/foundation.dart';
++import 'package:supabase_flutter/supabase_flutter.dart';
++
++import '../config/supabase_config.dart';
++
++/// Signed-in user + sign-in/sign-up/sign-out actions, backed by Supabase Auth.
++///
++/// Same pattern as CartController / ProductsController. The router listens
++/// to this controller, so signing in or out moves the user between the
++/// login screen and the shop automatically.
++class AuthController extends ChangeNotifier {
++  static final AuthController instance = AuthController._();
++
++  AuthController._();
++
++  /// Where GitHub (through Supabase) sends the user back after signing in.
++  /// The same scheme is registered in macos/ios Info.plist and
++  /// AndroidManifest.xml, and must be added in Supabase under
++  /// Authentication → URL Configuration → Redirect URLs.
++  static const String oauthRedirect =
++      'io.supabase.gamecreditsshop://login-callback/';
++
++  StreamSubscription<AuthState>? _subscription;
++
++  bool isLoading = false;
++  String? error;
++
++  /// Shown after sign-up when Supabase still needs the email confirmed.
++  String? info;
++
++  GoTrueClient get _auth => Supabase.instance.client.auth;
++
++  User? get user =>
++      SupabaseConfig.isConfigured ? _auth.currentUser : null;
++
++  bool get isSignedIn => user != null;
++
++  /// Call once at startup (after Supabase.initialize).
++  void init() {
++    if (!SupabaseConfig.isConfigured || _subscription != null) return;
++
++    // Fires on sign in, sign out, token refresh, and when the app is
++    // reopened from the GitHub redirect link.
++    _subscription = _auth.onAuthStateChange.listen(
++      (state) {
++        if (state.event == AuthChangeEvent.signedIn) {
++          isLoading = false;
++          error = null;
++          info = null;
++        }
++        notifyListeners();
++      },
++      onError: (Object e) {
++        isLoading = false;
++        error = _describe(e);
++        notifyListeners();
++      },
++    );
++  }
++
++  Future<void> signInWithEmail(String email, String password) {
++    return _run(() async {
++      await _auth.signInWithPassword(email: email, password: password);
++    });
++  }
++
++  Future<void> signUpWithEmail(String email, String password) {
++    return _run(() async {
++      final response = await _auth.signUp(email: email, password: password);
++
++      // "Confirm email" is on by default in Supabase: the account exists
++      // but there's no session until the link in the email is clicked.
++      if (response.session == null) {
++        info = 'Account created! Check $email for a confirmation link, '
++            'then sign in.';
++      }
++    });
++  }
++
++  /// Opens GitHub in the browser. The result arrives later through
++  /// onAuthStateChange when the redirect link reopens the app.
++  Future<void> signInWithGitHub() {
++    return _run(() async {
++      await _auth.signInWithOAuth(
++        OAuthProvider.github,
++        // On web, Supabase returns to the page that started the sign-in.
++        redirectTo: kIsWeb ? null : oauthRedirect,
++        authScreenLaunchMode: kIsWeb
++            ? LaunchMode.platformDefault
++            : LaunchMode.externalApplication,
++      );
++    });
++  }
++
++  Future<void> signOut() => _run(_auth.signOut);
++
++  void clearMessages() {
++    error = null;
++    info = null;
++    notifyListeners();
++  }
++
++  Future<void> _run(Future<void> Function() action) async {
++    if (!SupabaseConfig.isConfigured) {
++      error = 'Supabase is not configured yet. Add your project URL and '
++          'anon key in lib/config/supabase_config.dart.';
++      notifyListeners();
++      return;
++    }
++
++    isLoading = true;
++    error = null;
++    info = null;
++    notifyListeners();
++
++    try {
++      await action();
++    } catch (e) {
++      error = _describe(e);
++    } finally {
++      isLoading = false;
++      notifyListeners();
++    }
++  }
++
++  String _describe(Object e) {
++    if (e is AuthException) return e.message;
++    return 'Something went wrong. Check your internet connection.\n($e)';
++  }
++
++  @override
++  void dispose() {
++    _subscription?.cancel();
++    super.dispose();
++  }
++}
+diff --git a/macos/Runner/Info.plist b/macos/Runner/Info.plist
+index 4789daa..27b76c4 100644
+--- a/macos/Runner/Info.plist
++++ b/macos/Runner/Info.plist
+@@ -28,5 +28,16 @@
+ 	<string>MainMenu</string>
+ 	<key>NSPrincipalClass</key>
+ 	<string>NSApplication</string>
++	<key>CFBundleURLTypes</key>
++	<array>
++		<dict>
++			<key>CFBundleURLName</key>
++			<string>io.supabase.gamecreditsshop</string>
++			<key>CFBundleURLSchemes</key>
++			<array>
++				<string>io.supabase.gamecreditsshop</string>
++			</array>
++		</dict>
++	</array>
+ </dict>
+ </plist>
+diff --git a/macos/Runner/Release.entitlements b/macos/Runner/Release.entitlements
+index 852fa1a..ee95ab7 100644
+--- a/macos/Runner/Release.entitlements
++++ b/macos/Runner/Release.entitlements
+@@ -4,5 +4,7 @@
+ <dict>
+ 	<key>com.apple.security.app-sandbox</key>
+ 	<true/>
++	<key>com.apple.security.network.client</key>
++	<true/>
+ </dict>
+ </plist>
+diff --git a/supabase/auth.sql b/supabase/auth.sql
+new file mode 100644
+index 0000000..8b1e2da
+--- /dev/null
++++ b/supabase/auth.sql
+@@ -0,0 +1,17 @@
++-- ============================================================
++-- OPTIONAL: only signed-in users can read products
++-- Run in Supabase Dashboard → SQL Editor after schema.sql.
++--
++-- The app already requires sign-in before showing the shop. This makes
++-- the database enforce it too: the anon key alone can no longer read
++-- the catalog, only a request carrying a signed-in user's session.
++-- ============================================================
++
++drop policy if exists "Public can read products" on public.products;
++drop policy if exists "Signed-in users can read products" on public.products;
++
++create policy "Signed-in users can read products"
++  on public.products
++  for select
++  to authenticated
++  using (true);
+-- 
+2.43.0
+
