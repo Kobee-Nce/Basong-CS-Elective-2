@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/game_credit.dart';
+import 'credit_image.dart';
 
 class CreditCard extends StatelessWidget {
   final GameCredit credit;
@@ -33,10 +34,7 @@ class CreditCard extends StatelessWidget {
                         color: Colors.black12,
                         child: Padding(
                           padding: const EdgeInsets.all(8),
-                          child: Image.asset(
-                            credit.image,
-                            fit: BoxFit.contain,
-                          ),
+                          child: CreditImage(credit: credit),
                         ),
                       ),
                     ),

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../state/cart_controller.dart';
 import '../theme/app_theme.dart';
+import '../widgets/credit_image.dart';
 
 class CheckoutConfirmationScreen extends StatelessWidget {
   const CheckoutConfirmationScreen({super.key});
@@ -94,11 +95,13 @@ class CheckoutConfirmationScreen extends StatelessWidget {
                               ClipRRect(
                                 borderRadius:
                                     BorderRadius.circular(8),
-                                child: Image.asset(
-                                  item.credit.image,
+                                child: SizedBox(
                                   width: 55,
                                   height: 55,
-                                  fit: BoxFit.cover,
+                                  child: CreditImage(
+                                    credit: item.credit,
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                               ),
 

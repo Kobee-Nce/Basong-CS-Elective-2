@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../state/cart_controller.dart';
 import '../theme/app_theme.dart';
+import '../widgets/credit_image.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -80,11 +81,13 @@ class _CartScreenState extends State<CartScreen> {
                                     borderRadius:
                                         BorderRadius.circular(
                                             10),
-                                    child: Image.asset(
-                                      item.credit.image,
+                                    child: SizedBox(
                                       width: 70,
                                       height: 70,
-                                      fit: BoxFit.cover,
+                                      child: CreditImage(
+                                        credit: item.credit,
+                                        fit: BoxFit.cover,
+                                      ),
                                     ),
                                   ),
 

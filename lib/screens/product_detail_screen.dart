@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../models/game_credit.dart';
 import '../state/cart_controller.dart';
 import '../theme/app_theme.dart';
+import '../widgets/credit_image.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final GameCredit credit;
@@ -52,10 +53,7 @@ class ProductDetailScreen extends StatelessWidget {
                         aspectRatio: 4 / 5,
                         child: Padding(
                           padding: const EdgeInsets.all(8),
-                          child: Image.asset(
-                            credit.image,
-                            fit: BoxFit.contain,
-                          ),
+                          child: CreditImage(credit: credit),
                         ),
                       ),
                     ),
