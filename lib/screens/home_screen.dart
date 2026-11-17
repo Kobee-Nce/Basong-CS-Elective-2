@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../main.dart';
+import '../state/auth_controller.dart';
+import '../state/cart_controller.dart';
 import '../state/products_controller.dart';
 import '../theme/app_theme.dart';
 import '../widgets/credit_card.dart';
@@ -57,6 +59,38 @@ class _HomeScreenState extends State<HomeScreen> {
               context.push('/cart');
             },
             icon: const Icon(Icons.shopping_cart),
+          ),
+
+          // Signed-in account + sign out.
+          PopupMenuButton<String>(
+            tooltip: 'Account',
+            icon: const Icon(Icons.account_circle),
+            onSelected: (value) async {
+              if (value == 'signout') {
+                CartController.instance.clear();
+                // The router sends the user to /login once signed out.
+                await AuthController.instance.signOut();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem<String>(
+                enabled: false,
+                child: Text(
+                  AuthController.instance.user?.email ?? 'Signed in',
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem<String>(
+                value: 'signout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout),
+                    SizedBox(width: 10),
+                    Text('Sign out'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

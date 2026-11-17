@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/supabase_config.dart';
 import 'router.dart';
+import 'state/auth_controller.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -15,6 +16,9 @@ Future<void> main() async {
       url: SupabaseConfig.url,
       anonKey: SupabaseConfig.anonKey,
     );
+
+    // Start listening for sign-in / sign-out (incl. the GitHub redirect).
+    AuthController.instance.init();
   }
 
   runApp(const GameCreditsShop());

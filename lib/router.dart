@@ -5,12 +5,36 @@ import 'models/game_credit.dart';
 import 'screens/cart_screen.dart';
 import 'screens/checkout_confirmation_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
 import 'screens/product_detail_screen.dart';
+import 'state/auth_controller.dart';
 import 'state/products_controller.dart';
 import 'theme/app_theme.dart';
 
 final GoRouter router = GoRouter(
+  // Re-run `redirect` whenever the user signs in or out.
+  refreshListenable: AuthController.instance,
+
+  // Signed out → only the login screen. Signed in → never the login screen.
+  redirect: (context, state) {
+    final signedIn = AuthController.instance.isSignedIn;
+    final atLogin = state.matchedLocation == '/login';
+
+    if (!signedIn && !atLogin) return '/login';
+    if (signedIn && atLogin) return '/';
+    return null;
+  },
+
+  // The GitHub redirect link (io.supabase.gamecreditsshop://login-callback)
+  // can reach the router too. Supabase handles it, so just go home.
+  onException: (context, state, router) => router.go('/'),
+
   routes: [
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
+
     GoRoute(
       path: '/',
       builder: (context, state) => const HomeScreen(),

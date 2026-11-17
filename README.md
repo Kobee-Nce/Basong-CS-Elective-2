@@ -1,6 +1,7 @@
-# Game Credits Shop — Supabase Price Filter + Pagination
+# Game Credits Shop — Supabase Auth, Price Filter + Pagination
 
-CS Elective 2 · Supabase-Flutter Activity (branch `backend-filter-pagination`).
+CS Elective 2 · Supabase-Auth Activity (branch `backend-auth`), built on the
+Supabase-Flutter Activity (branch `backend-filter-pagination`).
 
 Builds on the PrelimExam Game Credits Shop. The product catalog now lives in a
 Supabase `products` table instead of a hardcoded list, and the home screen adds:
@@ -29,6 +30,38 @@ final response = await supabase
 
 Changing the price range always jumps back to page 1, so you never land on a
 page that no longer exists.
+
+## Authentication (`backend-auth`)
+
+The shop now requires signing in. Two ways to sign in:
+
+- **Email + password** — sign up / sign in with Supabase Auth.
+- **GitHub** (the additional 3rd-party provider) — opens GitHub in the
+  browser, then returns to the app through the deep link
+  `io.supabase.gamecreditsshop://login-callback/`.
+
+`AuthController` (`lib/state/auth_controller.dart`) listens to
+`supabase.auth.onAuthStateChange`. The router uses it as its
+`refreshListenable`, so signed-out users only see `/login` and signed-in
+users go straight to the shop. Sign out from the account menu on the home
+screen.
+
+### GitHub provider setup
+
+1. **GitHub → Settings → Developer settings → OAuth Apps → New OAuth App**
+   - Homepage URL: `https://<your-project-ref>.supabase.co`
+   - Authorization callback URL: `https://<your-project-ref>.supabase.co/auth/v1/callback`
+   - Register, then copy the **Client ID** and generate a **Client secret**.
+2. **Supabase → Authentication → Sign In / Providers → GitHub**: enable it,
+   paste the Client ID and Client secret, and save.
+3. **Supabase → Authentication → URL Configuration → Redirect URLs**: add
+   `io.supabase.gamecreditsshop://login-callback/`
+4. Fully stop and re-run the app (the URL scheme is registered in
+   `macos/Runner/Info.plist`, `ios/Runner/Info.plist` and
+   `android/app/src/main/AndroidManifest.xml`, which need a rebuild).
+
+Optional: run [`supabase/auth.sql`](supabase/auth.sql) so the database only
+lets signed-in users read products.
 
 ## Setup
 
