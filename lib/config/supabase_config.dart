@@ -11,12 +11,12 @@
 class SupabaseConfig {
   static const String url = String.fromEnvironment(
     'SUPABASE_URL',
-    defaultValue: 'https://YOUR-PROJECT-REF.supabase.co',
+    defaultValue: 'https://iqpmrhooncalxqxzjwfl.supabase.co',
   );
 
   static const String anonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
-    defaultValue: 'YOUR_SUPABASE_ANON_KEY',
+    defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlxcG1yaG9vbmNhbHhxeHpqd2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwOTMyODIsImV4cCI6MjEwODY2OTI4Mn0.0u-pzdyJPOtlFoEnBRVaS-WiN2hTYFomjexO1C7Q2_0',
   );
 
   static bool get isConfigured =>
