@@ -1,30 +1,90 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:flutter_application_1/main.dart';
+import 'package:flutter_application_1/core/formatters.dart';
+import 'package:flutter_application_1/models/product.dart';
+import 'package:flutter_application_1/models/product_filter.dart';
+import 'package:flutter_application_1/providers/auth_providers.dart';
+import 'package:flutter_application_1/providers/cart_provider.dart';
+
+Product _product({int id = 1, double price = 250, int stock = 3}) => Product(
+      id: id,
+      name: 'Steam Wallet ₱$price',
+      description: null,
+      price: price,
+      stock: stock,
+      imageUrl: null,
+      categoryId: 1,
+      categoryName: 'Steam Wallet',
+      createdAt: DateTime(2026),
+    );
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('formatters', () {
+    test('peso', () {
+      expect(peso(1250), '₱1,250');
+      expect(peso(5199.5), '₱5,199.50');
+      expect(peso(0), '₱0');
+    });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    test('order number', () => expect(orderNumber(42), '#000042'));
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  group('pagination', () {
+    test('page math', () {
+      final page = ProductPage(
+        items: List.generate(1, (i) => _product(id: i)),
+        totalCount: 13,
+        page: 2,
+      );
+      expect(page.totalPages, 3);
+      expect(page.firstShown, 13);
+      expect(page.lastShown, 13);
+      expect(page.hasNext, isFalse);
+      expect(page.hasPrevious, isTrue);
+    });
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  group('cart', () {
+    late ProviderContainer container;
+
+    setUp(() {
+      container = ProviderContainer(
+        overrides: [currentUserIdProvider.overrideWithValue('user-1')],
+      );
+    });
+
+    tearDown(() => container.dispose());
+
+    test('adds, totals and counts', () {
+      final cart = container.read(cartProvider.notifier);
+      expect(cart.add(_product(id: 1, price: 250)), isNull);
+      expect(cart.add(_product(id: 1, price: 250)), isNull);
+      expect(cart.add(_product(id: 2, price: 500, stock: 5)), isNull);
+
+      expect(container.read(cartCountProvider), 3);
+      expect(container.read(cartTotalProvider), 1000);
+    });
+
+    test('refuses out-of-stock and above-stock quantities', () {
+      final cart = container.read(cartProvider.notifier);
+      expect(cart.add(_product(stock: 0)), isNotNull);
+      expect(container.read(cartProvider), isEmpty);
+
+      cart.add(_product(stock: 2));
+      expect(cart.increment(1), isNull);
+      expect(cart.increment(1), isNotNull); // 3 > stock 2
+      expect(cart.quantityOf(1), 2);
+    });
+
+    test('decrement to zero removes, clear empties', () {
+      final cart = container.read(cartProvider.notifier);
+      cart.add(_product(id: 1));
+      cart.add(_product(id: 2));
+      cart.decrement(1);
+      expect(container.read(cartProvider).length, 1);
+      cart.clear();
+      expect(container.read(cartProvider), isEmpty);
+    });
   });
 }

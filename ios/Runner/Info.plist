@@ -66,5 +66,20 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose product images for the shop catalog.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Take product photos for the shop catalog.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>io.supabase.gamecreditsshop</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>io.supabase.gamecreditsshop</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
